@@ -1,7 +1,7 @@
 name: gn-fetch
 on:
   schedule:
-    - cron: "10 * * * *"   # 毎時10分(UTC)= JST :10。Worker の :17 実行前に Google News RSS を KV へ
+    - cron: "12 * * * *"   # 毎時12分(UTC/JST)。:10 定時が発火しなかったためずらす。Worker :17 より前
   workflow_dispatch:
 jobs:
   fetch:
