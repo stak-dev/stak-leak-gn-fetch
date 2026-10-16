@@ -1,0 +1,28 @@
+name: gn-fetch
+on:
+  schedule:
+    - cron: "10 * * * *"   # 毎時10分(UTC)= JST :10。Worker の :17 実行前に Google News RSS を KV へ
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch Google News RSS and push to Worker
+        env:
+          INGEST_KEY: ${{ secrets.LEAK_INGEST_KEY }}
+        run: |
+          python3 - <<'P'
+          import json,os,time,urllib.request
+          W="https://leak-live.ueda-855.workers.dev"
+          urls=json.load(urllib.request.urlopen(W+"/feeds",timeout=20))
+          feeds={}
+          for u in urls:
+            for a in range(3):
+              try:
+                feeds[u]=urllib.request.urlopen(urllib.request.Request(u,headers={"User-Agent":"stak-leak-bot/0.2"}),timeout=20).read().decode(); print("200",len(feeds[u]),u[:80]); break
+              except Exception as e: print("retry",a,e); time.sleep(5*(a+1))
+          r=urllib.request.Request(W+"/ingest",data=json.dumps({"feeds":feeds}).encode(),headers={"X-Ingest-Key":os.environ["INGEST_KEY"],"Content-Type":"application/json"},method="POST")
+          res=json.load(urllib.request.urlopen(r,timeout=30)); print(res)
+          if res["saved"]<res["expected"]: raise SystemExit("incomplete")
+          P
